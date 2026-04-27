@@ -1,0 +1,7 @@
+# Manifest des musiques pour Kevin Lust
+# Format : nom_du_fichier.mp3|Label affiche dans l'addon
+# Une ligne par morceau. Les lignes commencant par # sont ignorees.
+# Les .mp3 doivent etre uploades dans ce meme repo (a la racine).
+#
+# Exemple :
+# epic-track.mp3|Epic Track

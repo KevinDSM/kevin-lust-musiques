@@ -5,3 +5,11 @@
 #
 # Exemple :
 # epic-track.mp3|Epic Track
+Ave Maria.mp3|Ave Maria
+Bad Boy.mp3|Bad Boy
+Bois perdu.mp3|Bois perdu
+Gonzalo.mp3|Gonzalo
+Matadora.mp3|Matadora
+Max.mp3|Max
+Tashy.mp3|Tashy
+Zakhelo.mp3|Zakhelo

@@ -14,3 +14,6 @@ Max.mp3|Max
 Tashy.mp3|Tashy
 Zakhelo.mp3|Zakhelo
 SteelBall.mp3|Steel Ball
+Allumez le feu.mp3|Allumez le feu
+Dans le nord.mp3|Dans le nord
+Je veux savoir.mp3|Je veux savoir

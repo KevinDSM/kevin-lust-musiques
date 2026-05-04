@@ -396,6 +396,7 @@ $form.FormBorderStyle = 'FixedDialog'
 $form.MaximizeBox     = $false
 $form.MinimizeBox     = $false
 $form.BackColor       = $clrBg
+$form.TopMost         = $true   # Force la fenetre au premier plan (sinon elle se cache derriere le terminal)
 
 # ---- En-tete ----
 $headerPanel = New-Object System.Windows.Forms.Panel

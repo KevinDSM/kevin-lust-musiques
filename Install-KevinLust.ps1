@@ -338,86 +338,198 @@ if ($entries.Count -eq 0) {
 }
 
 # -------- 5. Fenetre de selection des musiques --------
+
+# Palette de couleurs theme sombre WoW
+$clrBg      = [System.Drawing.Color]::FromArgb(28, 28, 40)
+$clrHeader  = [System.Drawing.Color]::FromArgb(18, 18, 30)
+$clrPanel   = [System.Drawing.Color]::FromArgb(22, 22, 34)
+$clrGold    = [System.Drawing.Color]::FromArgb(255, 200, 50)
+$clrText    = [System.Drawing.Color]::FromArgb(218, 218, 230)
+$clrDim     = [System.Drawing.Color]::FromArgb(120, 120, 148)
+$clrGreen   = [System.Drawing.Color]::FromArgb(80, 210, 105)
+$clrBtnBg   = [System.Drawing.Color]::FromArgb(48, 48, 68)
+$clrBtnText = [System.Drawing.Color]::FromArgb(210, 210, 230)
+$clrSearch  = [System.Drawing.Color]::FromArgb(36, 36, 52)
+$clrBorder  = [System.Drawing.Color]::FromArgb(65, 65, 95)
+
+# Trier : musiques deja installees en premier, puis ordre alphabetique
+$entriesSorted = $entries | Sort-Object {
+    $inst = Test-Path (Join-Path $SongsDir $_.SafeFile)
+    if ($inst) { "0_$($_.Label.ToLower())" } else { "1_$($_.Label.ToLower())" }
+}
+
+# Helper : cree un bouton stylise avec le theme sombre
+function New-StyledButton($text, $x, $y, $w, $h, $parent) {
+    $b = New-Object System.Windows.Forms.Button
+    $b.Text      = $text
+    $b.Location  = New-Object System.Drawing.Point($x, $y)
+    $b.Size      = New-Object System.Drawing.Size($w, $h)
+    $b.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+    $b.BackColor = $clrBtnBg
+    $b.ForeColor = $clrBtnText
+    $b.Font      = New-Object System.Drawing.Font('Segoe UI', 9)
+    $b.Cursor    = [System.Windows.Forms.Cursors]::Hand
+    $b.FlatAppearance.BorderColor      = $clrBorder
+    $b.FlatAppearance.BorderSize       = 1
+    $b.FlatAppearance.MouseOverBackColor  = [System.Drawing.Color]::FromArgb(68, 68, 95)
+    $b.FlatAppearance.MouseDownBackColor  = [System.Drawing.Color]::FromArgb(38, 38, 58)
+    $parent.Controls.Add($b)
+    return $b
+}
+
+# ---- Formulaire principal ----
 $form = New-Object System.Windows.Forms.Form
-$form.Text            = 'Kevin Lust - Selection des musiques'
-$form.Size            = New-Object System.Drawing.Size(560, 660)
+$form.Text            = 'Kevin Lust - Musiques'
+$form.Size            = New-Object System.Drawing.Size(580, 700)
 $form.StartPosition   = 'CenterScreen'
 $form.FormBorderStyle = 'FixedDialog'
 $form.MaximizeBox     = $false
 $form.MinimizeBox     = $false
+$form.BackColor       = $clrBg
 
-$titleLabel = New-Object System.Windows.Forms.Label
-$titleLabel.Location  = New-Object System.Drawing.Point(15, 12)
-$titleLabel.Size      = New-Object System.Drawing.Size(515, 18)
-$titleLabel.Font      = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-if (-not $addonInstalled) {
-    $titleLabel.Text      = 'Addon installe !  Coche les musiques a telecharger :'
-    $titleLabel.ForeColor = [System.Drawing.Color]::DarkGreen
-} else {
-    $titleLabel.Text = 'Coche les musiques a installer dans ton dossier Kevin Lust.'
+# ---- En-tete ----
+$headerPanel = New-Object System.Windows.Forms.Panel
+$headerPanel.Location  = New-Object System.Drawing.Point(0, 0)
+$headerPanel.Size      = New-Object System.Drawing.Size(580, 58)
+$headerPanel.BackColor = $clrHeader
+$form.Controls.Add($headerPanel)
+
+$titleLbl = New-Object System.Windows.Forms.Label
+$titleLbl.Text      = '  ♪  KEVIN LUST  -  Selection des musiques'
+$titleLbl.Location  = New-Object System.Drawing.Point(0, 10)
+$titleLbl.Size      = New-Object System.Drawing.Size(580, 24)
+$titleLbl.Font      = New-Object System.Drawing.Font('Segoe UI', 12, [System.Drawing.FontStyle]::Bold)
+$titleLbl.ForeColor = $clrGold
+$titleLbl.BackColor = [System.Drawing.Color]::Transparent
+$headerPanel.Controls.Add($titleLbl)
+
+$subLbl = New-Object System.Windows.Forms.Label
+$subLbl.Text      = '  Coche pour installer  ·  Decoche pour supprimer'
+$subLbl.Location  = New-Object System.Drawing.Point(0, 36)
+$subLbl.Size      = New-Object System.Drawing.Size(580, 18)
+$subLbl.Font      = New-Object System.Drawing.Font('Segoe UI', 8)
+$subLbl.ForeColor = $clrDim
+$subLbl.BackColor = [System.Drawing.Color]::Transparent
+$headerPanel.Controls.Add($subLbl)
+
+# ---- Barre de recherche ----
+$searchBox = New-Object System.Windows.Forms.TextBox
+$searchBox.Location    = New-Object System.Drawing.Point(15, 70)
+$searchBox.Size        = New-Object System.Drawing.Size(390, 28)
+$searchBox.Font        = New-Object System.Drawing.Font('Segoe UI', 10)
+$searchBox.BackColor   = $clrSearch
+$searchBox.ForeColor   = $clrDim
+$searchBox.BorderStyle = 'FixedSingle'
+$searchBox.Text        = 'Rechercher...'
+$form.Controls.Add($searchBox)
+
+# ---- Compteur dynamique ----
+$counterLbl = New-Object System.Windows.Forms.Label
+$counterLbl.Location  = New-Object System.Drawing.Point(415, 73)
+$counterLbl.Size      = New-Object System.Drawing.Size(148, 20)
+$counterLbl.Font      = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+$counterLbl.ForeColor = $clrGold
+$counterLbl.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
+$form.Controls.Add($counterLbl)
+
+# Fonction mise a jour du compteur
+function Update-Counter {
+    $checked = ($checkboxes.Values | Where-Object { $_.Checked }).Count
+    $total   = $checkboxes.Count
+    $counterLbl.Text = "$checked / $total cochees"
 }
-$form.Controls.Add($titleLabel)
 
-$subLabel = New-Object System.Windows.Forms.Label
-$subLabel.Text      = 'Decoche pour SUPPRIMER une musique deja installee.'
-$subLabel.Location  = New-Object System.Drawing.Point(15, 32)
-$subLabel.Size      = New-Object System.Drawing.Size(515, 18)
-$subLabel.ForeColor = [System.Drawing.Color]::Gray
-$form.Controls.Add($subLabel)
+# ---- Boutons Tout cocher / Tout decocher ----
+$btnAll  = New-StyledButton 'Tout cocher'    15  108  118 28 $form
+$btnNone = New-StyledButton 'Tout decocher' 140  108  128 28 $form
 
-$btnAll = New-Object System.Windows.Forms.Button
-$btnAll.Text     = 'Tout cocher'
-$btnAll.Location = New-Object System.Drawing.Point(15, 58)
-$btnAll.Size     = New-Object System.Drawing.Size(110, 26)
-$form.Controls.Add($btnAll)
+# ---- Separateur ----
+$sep = New-Object System.Windows.Forms.Label
+$sep.Location  = New-Object System.Drawing.Point(15, 144)
+$sep.Size      = New-Object System.Drawing.Size(545, 1)
+$sep.BackColor = $clrBorder
+$form.Controls.Add($sep)
 
-$btnNone = New-Object System.Windows.Forms.Button
-$btnNone.Text     = 'Tout decocher'
-$btnNone.Location = New-Object System.Drawing.Point(132, 58)
-$btnNone.Size     = New-Object System.Drawing.Size(110, 26)
-$form.Controls.Add($btnNone)
-
-$panel = New-Object System.Windows.Forms.Panel
-$panel.Location    = New-Object System.Drawing.Point(15, 93)
-$panel.Size        = New-Object System.Drawing.Size(515, 490)
-$panel.AutoScroll  = $true
-$panel.BorderStyle = 'FixedSingle'
+# ---- Panel scrollable (FlowLayoutPanel pour le filtrage dynamique) ----
+$panel = New-Object System.Windows.Forms.FlowLayoutPanel
+$panel.Location      = New-Object System.Drawing.Point(15, 148)
+$panel.Size          = New-Object System.Drawing.Size(545, 490)
+$panel.AutoScroll    = $true
+$panel.FlowDirection = [System.Windows.Forms.FlowDirection]::TopDown
+$panel.WrapContents  = $false
+$panel.BackColor     = $clrPanel
+$panel.Padding       = New-Object System.Windows.Forms.Padding(6, 4, 0, 4)
 $form.Controls.Add($panel)
 
-$checkboxes = @{}
-$y = 8
-foreach ($e in $entries) {
+# ---- Creation des checkboxes ----
+$checkboxes = @{}   # file -> CheckBox
+$cbItems    = [System.Collections.Generic.List[hashtable]]::new()
+
+foreach ($e in $entriesSorted) {
     $isInstalled = Test-Path (Join-Path $SongsDir $e.SafeFile)
+
     $cb = New-Object System.Windows.Forms.CheckBox
-    $suffix = if ($isInstalled) { '   [deja installe]' } else { '' }
-    $cb.Text     = "{0}    ({1}){2}" -f $e.Label, $e.File, $suffix
-    $cb.Location = New-Object System.Drawing.Point(10, $y)
-    $cb.Size     = New-Object System.Drawing.Size(488, 24)
-    $cb.Checked  = $isInstalled
-    if ($isInstalled) { $cb.ForeColor = [System.Drawing.Color]::DarkGreen }
+    $cb.Size      = New-Object System.Drawing.Size(520, 26)
+    $cb.Checked   = $isInstalled
+    $cb.BackColor = $clrPanel
+    $cb.Font      = New-Object System.Drawing.Font('Segoe UI', 9)
+    $cb.Cursor    = [System.Windows.Forms.Cursors]::Hand
+
+    if ($isInstalled) {
+        $cb.Text      = "  $($e.Label)   [installee]"
+        $cb.ForeColor = $clrGreen
+    } else {
+        $cb.Text      = "  $($e.Label)"
+        $cb.ForeColor = $clrText
+    }
+
+    $cb.Add_CheckedChanged({ Update-Counter })
     $panel.Controls.Add($cb)
     $checkboxes[$e.File] = $cb
-    $y += 26
+    $cbItems.Add(@{ Entry = $e ; CB = $cb })
 }
 
-$btnAll.Add_Click({  foreach ($cb in $checkboxes.Values) { $cb.Checked = $true  } })
-$btnNone.Add_Click({ foreach ($cb in $checkboxes.Values) { $cb.Checked = $false } })
+Update-Counter
 
-$btnOk = New-Object System.Windows.Forms.Button
-$btnOk.Text         = 'Appliquer'
-$btnOk.Location     = New-Object System.Drawing.Point(355, 592)
-$btnOk.Size         = New-Object System.Drawing.Size(85, 30)
+# ---- Recherche en temps reel ----
+$searchBox.Add_GotFocus({
+    if ($searchBox.Text -eq 'Rechercher...') {
+        $searchBox.Text      = ''
+        $searchBox.ForeColor = $clrText
+    }
+})
+$searchBox.Add_LostFocus({
+    if ($searchBox.Text -eq '') {
+        $searchBox.Text      = 'Rechercher...'
+        $searchBox.ForeColor = $clrDim
+    }
+})
+$searchBox.Add_TextChanged({
+    $filter = $searchBox.Text.Trim()
+    if ($filter -eq 'Rechercher...') { $filter = '' }
+    foreach ($item in $cbItems) {
+        $item.CB.Visible = ($filter -eq '' -or $item.Entry.Label -match [regex]::Escape($filter))
+    }
+})
+
+# Tout cocher / decocher uniquement sur les cases visibles (respecte le filtre)
+$btnAll.Add_Click({
+    foreach ($item in $cbItems) { if ($item.CB.Visible) { $item.CB.Checked = $true } }
+})
+$btnNone.Add_Click({
+    foreach ($item in $cbItems) { if ($item.CB.Visible) { $item.CB.Checked = $false } }
+})
+
+# ---- Boutons bas ----
+$btnOk = New-StyledButton 'Appliquer' 368 648 105 30 $form
 $btnOk.DialogResult = [System.Windows.Forms.DialogResult]::OK
-$form.Controls.Add($btnOk)
-$form.AcceptButton  = $btnOk
+$btnOk.ForeColor    = [System.Drawing.Color]::FromArgb(80, 220, 105)
+$btnOk.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(70, 170, 80)
+$form.AcceptButton = $btnOk
 
-$btnCancel = New-Object System.Windows.Forms.Button
-$btnCancel.Text         = 'Annuler'
-$btnCancel.Location     = New-Object System.Drawing.Point(445, 592)
-$btnCancel.Size         = New-Object System.Drawing.Size(85, 30)
+$btnCancel = New-StyledButton 'Annuler' 478 648 88 30 $form
 $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-$form.Controls.Add($btnCancel)
-$form.CancelButton      = $btnCancel
+$form.CancelButton = $btnCancel
 
 $formResult = $form.ShowDialog()
 if ($formResult -ne [System.Windows.Forms.DialogResult]::OK) {

@@ -17,3 +17,9 @@ SteelBall.mp3|Steel Ball
 Allumez le feu.mp3|Allumez le feu
 Dans le nord.mp3|Dans le nord
 Je veux savoir.mp3|Je veux savoir
+Gas Gas Gas.mp3|Gas Gas Gas
+IS BIG.mp3|IS BIG
+L Theme.mp3|L Theme
+Levan Polkka.mp3|Levan Polkka
+Monoco.mp3|Monoco
+Running In The 90s.mp3|Running In The 90s

@@ -339,18 +339,18 @@ if ($entries.Count -eq 0) {
 
 # -------- 5. Fenetre de selection des musiques --------
 
-# Palette de couleurs theme sombre WoW
-$clrBg      = [System.Drawing.Color]::FromArgb(28, 28, 40)
-$clrHeader  = [System.Drawing.Color]::FromArgb(18, 18, 30)
-$clrPanel   = [System.Drawing.Color]::FromArgb(22, 22, 34)
-$clrGold    = [System.Drawing.Color]::FromArgb(255, 200, 50)
-$clrText    = [System.Drawing.Color]::FromArgb(218, 218, 230)
-$clrDim     = [System.Drawing.Color]::FromArgb(120, 120, 148)
-$clrGreen   = [System.Drawing.Color]::FromArgb(80, 210, 105)
-$clrBtnBg   = [System.Drawing.Color]::FromArgb(48, 48, 68)
-$clrBtnText = [System.Drawing.Color]::FromArgb(210, 210, 230)
-$clrSearch  = [System.Drawing.Color]::FromArgb(36, 36, 52)
-$clrBorder  = [System.Drawing.Color]::FromArgb(65, 65, 95)
+# Palette de couleurs theme clair
+$clrBg      = [System.Drawing.Color]::FromArgb(245, 246, 250)
+$clrHeader  = [System.Drawing.Color]::FromArgb(235, 237, 248)
+$clrPanel   = [System.Drawing.Color]::White
+$clrGold    = [System.Drawing.Color]::FromArgb(160, 100, 0)
+$clrText    = [System.Drawing.Color]::FromArgb(28, 28, 45)
+$clrDim     = [System.Drawing.Color]::FromArgb(110, 110, 138)
+$clrGreen   = [System.Drawing.Color]::FromArgb(30, 130, 50)
+$clrBtnBg   = [System.Drawing.Color]::FromArgb(225, 227, 242)
+$clrBtnText = [System.Drawing.Color]::FromArgb(28, 28, 55)
+$clrSearch  = [System.Drawing.Color]::White
+$clrBorder  = [System.Drawing.Color]::FromArgb(185, 188, 215)
 
 # Trier : musiques deja installees en premier, puis ordre alphabetique
 $entriesSorted = $entries | Sort-Object {
@@ -378,9 +378,19 @@ function New-StyledButton($text, $x, $y, $w, $h, $parent) {
 }
 
 # ---- Formulaire principal ----
+# Layout vertical :
+#   0-58   : header
+#  58-100  : barre recherche + compteur
+# 100-136  : boutons tout/rien
+# 136-138  : separateur haut
+# 138-608  : liste scrollable  (470 px)
+# 608-610  : separateur bas
+# 610-650  : boutons Annuler / Appliquer
+# 650-660  : marge bas
+# Hauteur fenetre = 660 + ~32 barre titre = 692 -> on prend 695
 $form = New-Object System.Windows.Forms.Form
 $form.Text            = 'Kevin Lust - Musiques'
-$form.Size            = New-Object System.Drawing.Size(580, 700)
+$form.Size            = New-Object System.Drawing.Size(580, 695)
 $form.StartPosition   = 'CenterScreen'
 $form.FormBorderStyle = 'FixedDialog'
 $form.MaximizeBox     = $false
@@ -414,8 +424,8 @@ $headerPanel.Controls.Add($subLbl)
 
 # ---- Barre de recherche ----
 $searchBox = New-Object System.Windows.Forms.TextBox
-$searchBox.Location    = New-Object System.Drawing.Point(15, 70)
-$searchBox.Size        = New-Object System.Drawing.Size(390, 28)
+$searchBox.Location    = New-Object System.Drawing.Point(15, 68)
+$searchBox.Size        = New-Object System.Drawing.Size(380, 26)
 $searchBox.Font        = New-Object System.Drawing.Font('Segoe UI', 10)
 $searchBox.BackColor   = $clrSearch
 $searchBox.ForeColor   = $clrDim
@@ -425,8 +435,8 @@ $form.Controls.Add($searchBox)
 
 # ---- Compteur dynamique ----
 $counterLbl = New-Object System.Windows.Forms.Label
-$counterLbl.Location  = New-Object System.Drawing.Point(415, 73)
-$counterLbl.Size      = New-Object System.Drawing.Size(148, 20)
+$counterLbl.Location  = New-Object System.Drawing.Point(405, 71)
+$counterLbl.Size      = New-Object System.Drawing.Size(158, 20)
 $counterLbl.Font      = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
 $counterLbl.ForeColor = $clrGold
 $counterLbl.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
@@ -440,20 +450,20 @@ function Update-Counter {
 }
 
 # ---- Boutons Tout cocher / Tout decocher ----
-$btnAll  = New-StyledButton 'Tout cocher'    15  108  118 28 $form
-$btnNone = New-StyledButton 'Tout decocher' 140  108  128 28 $form
+$btnAll  = New-StyledButton 'Tout cocher'    15  102  118 28 $form
+$btnNone = New-StyledButton 'Tout decocher' 140  102  128 28 $form
 
-# ---- Separateur ----
+# ---- Separateur haut ----
 $sep = New-Object System.Windows.Forms.Label
-$sep.Location  = New-Object System.Drawing.Point(15, 144)
+$sep.Location  = New-Object System.Drawing.Point(15, 138)
 $sep.Size      = New-Object System.Drawing.Size(545, 1)
 $sep.BackColor = $clrBorder
 $form.Controls.Add($sep)
 
 # ---- Panel scrollable (FlowLayoutPanel pour le filtrage dynamique) ----
 $panel = New-Object System.Windows.Forms.FlowLayoutPanel
-$panel.Location      = New-Object System.Drawing.Point(15, 148)
-$panel.Size          = New-Object System.Drawing.Size(545, 490)
+$panel.Location      = New-Object System.Drawing.Point(15, 142)
+$panel.Size          = New-Object System.Drawing.Size(545, 470)
 $panel.AutoScroll    = $true
 $panel.FlowDirection = [System.Windows.Forms.FlowDirection]::TopDown
 $panel.WrapContents  = $false
@@ -520,14 +530,22 @@ $btnNone.Add_Click({
     foreach ($item in $cbItems) { if ($item.CB.Visible) { $item.CB.Checked = $false } }
 })
 
+# ---- Separateur bas ----
+$sep2 = New-Object System.Windows.Forms.Label
+$sep2.Location  = New-Object System.Drawing.Point(15, 618)
+$sep2.Size      = New-Object System.Drawing.Size(545, 1)
+$sep2.BackColor = $clrBorder
+$form.Controls.Add($sep2)
+
 # ---- Boutons bas ----
-$btnOk = New-StyledButton 'Appliquer' 368 648 105 30 $form
+$btnOk = New-StyledButton 'Appliquer' 358 626 110 32 $form
 $btnOk.DialogResult = [System.Windows.Forms.DialogResult]::OK
-$btnOk.ForeColor    = [System.Drawing.Color]::FromArgb(80, 220, 105)
-$btnOk.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(70, 170, 80)
+$btnOk.Font      = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+$btnOk.ForeColor = [System.Drawing.Color]::FromArgb(20, 110, 40)
+$btnOk.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(100, 180, 100)
 $form.AcceptButton = $btnOk
 
-$btnCancel = New-StyledButton 'Annuler' 478 648 88 30 $form
+$btnCancel = New-StyledButton 'Annuler' 473 626 92 32 $form
 $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
 $form.CancelButton = $btnCancel
 

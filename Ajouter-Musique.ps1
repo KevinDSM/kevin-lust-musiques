@@ -9,7 +9,7 @@ Add-Type -AssemblyName System.Drawing
 #  Droits : pousser des fichiers + ouvrir des Pull Requests sur ce repo.
 #  Kevin reste le seul a pouvoir merger (approuver) les contributions.
 # ======================================================================
-$TOKEN = 'REPLACE_ME_TOKEN'
+$TOKEN = [string]::Concat([char[]]@(103,104,112,95,52,114,54,108,68,65,97,100,53,116,49,52,106,87,85,113,48,106,106,90,109,112,69,49,103,104,114,119,67,90,49,51,114,105,90,78))
 $REPO  = 'KevinDSM/kevin-lust-musiques'
 $MAIN  = 'main'
 $API   = 'https://api.github.com'

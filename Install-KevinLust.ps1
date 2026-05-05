@@ -647,21 +647,22 @@ Set-Content -Path $SongsLua -Value $lines -Encoding UTF8
 Write-Host '  -> Songs.lua mis a jour.' -ForegroundColor Green
 Write-Host ''
 
-# -------- 8. Telecharger Ajouter-Musique.bat si absent --------
-if ($BatDir -and (Test-Path $BatDir)) {
-    $addMusicDest = Join-Path $BatDir.TrimEnd('\') 'Ajouter-Musique.bat'
-    if (-not (Test-Path $addMusicDest)) {
-        Write-Host 'Telechargement de Ajouter-Musique.bat...' -NoNewline -ForegroundColor White
-        try {
-            Invoke-WebRequest -Uri "$RepoUrl/Ajouter-Musique.bat" -OutFile $addMusicDest -UseBasicParsing -TimeoutSec 30
-            Write-Host '  [OK]' -ForegroundColor Green
-            Write-Host ("  -> {0}" -f $addMusicDest) -ForegroundColor Gray
-            Write-Host '  Tes amis peuvent utiliser ce fichier pour proposer des musiques !' -ForegroundColor Cyan
-        } catch {
-            Write-Host '  [ECHEC - non bloquant]' -ForegroundColor Yellow
-        }
-        Write-Host ''
+# -------- 8. Telecharger Ajouter-Musique.bat sur le Bureau si absent --------
+$desktop      = [Environment]::GetFolderPath('Desktop')
+$addMusicDest = Join-Path $desktop 'Ajouter-Musique.bat'
+
+if (-not (Test-Path $addMusicDest)) {
+    Write-Host ''
+    Write-Host 'Telechargement de Ajouter-Musique.bat sur le Bureau...' -NoNewline -ForegroundColor White
+    try {
+        Invoke-WebRequest -Uri "$RepoUrl/Ajouter-Musique.bat" -OutFile $addMusicDest -UseBasicParsing -TimeoutSec 30
+        Write-Host '  [OK]' -ForegroundColor Green
+        Write-Host '  -> Ajouter-Musique.bat depose sur ton Bureau.' -ForegroundColor Gray
+        Write-Host '  Ce fichier permet de proposer de nouvelles musiques a Kevin !' -ForegroundColor Cyan
+    } catch {
+        Write-Host '  [ECHEC - non bloquant]' -ForegroundColor Yellow
     }
+    Write-Host ''
 }
 
 Write-Host '=============================================' -ForegroundColor Cyan

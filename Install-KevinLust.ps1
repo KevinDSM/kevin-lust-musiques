@@ -303,23 +303,6 @@ if (-not (Test-Path $SongsDir)) {
     New-Item -ItemType Directory -Path $SongsDir | Out-Null
 }
 
-# -------- 3b. Deposer Ajouter-Musique.bat sur le Bureau --------
-# Fait ici (avant la fenetre de selection) pour garantir que ca tourne meme si l'user annule la fenetre.
-$desktop      = [Environment]::GetFolderPath('Desktop')
-$addMusicDest = Join-Path $desktop 'Ajouter-Musique.bat'
-
-Write-Host ''
-Write-Host 'Depot de Ajouter-Musique.bat sur le Bureau...' -NoNewline -ForegroundColor White
-try {
-    Invoke-WebRequest -Uri "$RepoUrl/Ajouter-Musique.bat" -OutFile $addMusicDest -UseBasicParsing -TimeoutSec 30
-    Write-Host '  [OK]' -ForegroundColor Green
-    Write-Host '  -> Ajouter-Musique.bat est sur ton Bureau.' -ForegroundColor Gray
-    Write-Host '  Ce fichier permet de proposer de nouvelles musiques a Kevin !' -ForegroundColor Cyan
-} catch {
-    Write-Host '  [ECHEC - non bloquant]' -ForegroundColor Yellow
-    Write-Host ("  Detail : {0}" -f $_.Exception.Message) -ForegroundColor DarkYellow
-    Write-Host '  (L addon fonctionne quand meme, mais Ajouter-Musique.bat n a pas pu etre telecharge.)' -ForegroundColor DarkYellow
-}
 
 # -------- 4. Telecharger le manifest --------
 Write-Host ''
@@ -680,8 +663,36 @@ $lines += ''
 
 Set-Content -Path $SongsLua -Value $lines -Encoding UTF8
 Write-Host '  -> Songs.lua mis a jour.' -ForegroundColor Green
-Write-Host ''
 
+# -------- 8. Proposer Ajouter-Musique.bat --------
+$desktop      = [Environment]::GetFolderPath('Desktop')
+$addMusicDest = Join-Path $desktop 'Ajouter-Musique.bat'
+
+if (-not (Test-Path $addMusicDest)) {
+    Write-Host ''
+    Write-Host '---------------------------------------------' -ForegroundColor DarkGray
+    Write-Host '  Ajouter-Musique.bat' -ForegroundColor Cyan
+    Write-Host '  Ce fichier te permet de proposer tes propres' -ForegroundColor Gray
+    Write-Host '  musiques a Kevin pour les partager avec tous.' -ForegroundColor Gray
+    Write-Host ''
+    $rep = Read-Host '  Veux-tu l installer sur ton Bureau ? (O/N)'
+    if ($rep -match '^[OoYy]') {
+        Write-Host '  Telechargement...' -NoNewline -ForegroundColor White
+        try {
+            Invoke-WebRequest -Uri "$RepoUrl/Ajouter-Musique.bat" -OutFile $addMusicDest -UseBasicParsing -TimeoutSec 30
+            Write-Host '  [OK]' -ForegroundColor Green
+            Write-Host '  -> Ajouter-Musique.bat depose sur le Bureau.' -ForegroundColor Gray
+        } catch {
+            Write-Host '  [ECHEC]' -ForegroundColor Yellow
+            Write-Host ("  Detail : {0}" -f $_.Exception.Message) -ForegroundColor DarkYellow
+        }
+    } else {
+        Write-Host '  Pas de probleme, tu pourras le recuperer plus tard.' -ForegroundColor Gray
+    }
+    Write-Host '---------------------------------------------' -ForegroundColor DarkGray
+}
+
+Write-Host ''
 Write-Host '=============================================' -ForegroundColor Cyan
 Write-Host '  Termine !' -ForegroundColor Cyan
 Write-Host '  Lance WoW (ou tape /reload si deja en jeu).' -ForegroundColor Cyan

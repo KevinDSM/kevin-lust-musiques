@@ -2,6 +2,22 @@
 param([string]$BatDir = "")
 $ErrorActionPreference = 'Stop'
 
+# Filet de securite global : attrape toute erreur non geree et garde la fenetre ouverte
+trap {
+    Write-Host ''
+    Write-Host '================================================' -ForegroundColor Red
+    Write-Host '  ERREUR INATTENDUE - copie ce message a Kevin' -ForegroundColor Red
+    Write-Host '================================================' -ForegroundColor Red
+    Write-Host ''
+    Write-Host ("  Message : {0}" -f $_.Exception.Message)       -ForegroundColor Red
+    Write-Host ("  Ligne   : {0}" -f $_.InvocationInfo.ScriptLineNumber) -ForegroundColor DarkRed
+    Write-Host ("  Detail  : {0}" -f $_.InvocationInfo.Line.Trim())      -ForegroundColor DarkRed
+    Write-Host ''
+    pause
+    exit 1
+    continue
+}
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 

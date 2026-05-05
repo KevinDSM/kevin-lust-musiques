@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 param([string]$BatDir = "")
 $ErrorActionPreference = 'Stop'
 
@@ -377,6 +377,16 @@ $entriesSorted = $entries | Sort-Object {
     if ($inst) { "0_$($_.Label.ToLower())" } else { "1_$($_.Label.ToLower())" }
 }
 
+# ---- Lecteur audio (Windows Media Player COM) pour la previsualisation ----
+$script:wmp            = $null
+$script:currentPlayBtn = $null
+try {
+    $script:wmp = New-Object -ComObject WMPlayer.OCX
+    $script:wmp.settings.volume = 80
+} catch {
+    # WMP indisponible : les boutons lecture seront desactives
+}
+
 # Helper : cree un bouton stylise avec le theme sombre
 function New-StyledButton($text, $x, $y, $w, $h, $parent) {
     $b = New-Object System.Windows.Forms.Button
@@ -491,15 +501,23 @@ $panel.BackColor     = $clrPanel
 $panel.Padding       = New-Object System.Windows.Forms.Padding(6, 4, 0, 4)
 $form.Controls.Add($panel)
 
-# ---- Creation des checkboxes ----
+# ---- Creation des lignes : checkbox + bouton lecture ----
 $checkboxes = @{}   # file -> CheckBox
 $cbItems    = [System.Collections.Generic.List[hashtable]]::new()
 
 foreach ($e in $entriesSorted) {
     $isInstalled = Test-Path (Join-Path $SongsDir $e.SafeFile)
 
+    # Panel de ligne (checkbox + bouton cote a cote)
+    $rowPanel = New-Object System.Windows.Forms.Panel
+    $rowPanel.Size      = New-Object System.Drawing.Size(533, 27)
+    $rowPanel.BackColor = $clrPanel
+    $rowPanel.Margin    = New-Object System.Windows.Forms.Padding(0, 0, 0, 0)
+
+    # Checkbox
     $cb = New-Object System.Windows.Forms.CheckBox
-    $cb.Size      = New-Object System.Drawing.Size(520, 26)
+    $cb.Location  = New-Object System.Drawing.Point(0, 1)
+    $cb.Size      = New-Object System.Drawing.Size(438, 25)
     $cb.Checked   = $isInstalled
     $cb.BackColor = $clrPanel
     $cb.Font      = New-Object System.Drawing.Font('Segoe UI', 9)
@@ -512,11 +530,57 @@ foreach ($e in $entriesSorted) {
         $cb.Text      = "  $($e.Label)"
         $cb.ForeColor = $clrText
     }
-
     $cb.Add_CheckedChanged({ Update-Counter })
-    $panel.Controls.Add($cb)
+
+    # Bouton lecture / stop
+    $capUrl  = "$RepoUrl/$([System.Uri]::EscapeDataString($e.File))"
+    $playBtn = New-Object System.Windows.Forms.Button
+    $playBtn.Location  = New-Object System.Drawing.Point(440, 2)
+    $playBtn.Size      = New-Object System.Drawing.Size(88, 23)
+    $playBtn.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+    $playBtn.Text      = 'Ecouter'
+    $playBtn.Font      = New-Object System.Drawing.Font('Segoe UI', 8)
+    $playBtn.BackColor = [System.Drawing.Color]::FromArgb(228, 238, 255)
+    $playBtn.ForeColor = [System.Drawing.Color]::FromArgb(20, 60, 160)
+    $playBtn.Cursor    = [System.Windows.Forms.Cursors]::Hand
+    $playBtn.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(140, 175, 230)
+    $playBtn.FlatAppearance.BorderSize  = 1
+    $playBtn | Add-Member -MemberType NoteProperty -Name 'SongUrl' -Value $capUrl -Force
+    if (-not $script:wmp) { $playBtn.Enabled = $false ; $playBtn.Text = 'N/D' }
+
+    $playBtn.Add_Click({
+        $url = $this.SongUrl
+        # Reinitialiser le bouton precedent si different
+        if ($script:currentPlayBtn -and $script:currentPlayBtn -ne $this) {
+            $script:currentPlayBtn.Text      = 'Ecouter'
+            $script:currentPlayBtn.ForeColor = [System.Drawing.Color]::FromArgb(20, 60, 160)
+            $script:currentPlayBtn.BackColor = [System.Drawing.Color]::FromArgb(228, 238, 255)
+        }
+        if ($script:currentPlayBtn -eq $this) {
+            # Deja en cours -> arreter
+            try { $script:wmp.controls.stop() } catch {}
+            $this.Text      = 'Ecouter'
+            $this.ForeColor = [System.Drawing.Color]::FromArgb(20, 60, 160)
+            $this.BackColor = [System.Drawing.Color]::FromArgb(228, 238, 255)
+            $script:currentPlayBtn = $null
+        } else {
+            # Lancer la lecture
+            try {
+                $script:wmp.URL = $url
+                $script:wmp.controls.play()
+            } catch {}
+            $this.Text      = 'Stop'
+            $this.ForeColor = [System.Drawing.Color]::FromArgb(160, 20, 20)
+            $this.BackColor = [System.Drawing.Color]::FromArgb(255, 228, 228)
+            $script:currentPlayBtn = $this
+        }
+    })
+
+    $rowPanel.Controls.Add($cb)
+    $rowPanel.Controls.Add($playBtn)
+    $panel.Controls.Add($rowPanel)
     $checkboxes[$e.File] = $cb
-    $cbItems.Add(@{ Entry = $e ; CB = $cb })
+    $cbItems.Add(@{ Entry = $e ; CB = $cb ; Row = $rowPanel })
 }
 
 Update-Counter
@@ -538,16 +602,16 @@ $searchBox.Add_TextChanged({
     $filter = $searchBox.Text.Trim()
     if ($filter -eq 'Rechercher...') { $filter = '' }
     foreach ($item in $cbItems) {
-        $item.CB.Visible = ($filter -eq '' -or $item.Entry.Label -match [regex]::Escape($filter))
+        $item.Row.Visible = ($filter -eq '' -or $item.Entry.Label -match [regex]::Escape($filter))
     }
 })
 
-# Tout cocher / decocher uniquement sur les cases visibles (respecte le filtre)
+# Tout cocher / decocher uniquement sur les lignes visibles (respecte le filtre)
 $btnAll.Add_Click({
-    foreach ($item in $cbItems) { if ($item.CB.Visible) { $item.CB.Checked = $true } }
+    foreach ($item in $cbItems) { if ($item.Row.Visible) { $item.CB.Checked = $true } }
 })
 $btnNone.Add_Click({
-    foreach ($item in $cbItems) { if ($item.CB.Visible) { $item.CB.Checked = $false } }
+    foreach ($item in $cbItems) { if ($item.Row.Visible) { $item.CB.Checked = $false } }
 })
 
 # ---- Separateur bas ----
@@ -568,6 +632,14 @@ $form.AcceptButton = $btnOk
 $btnCancel = New-StyledButton 'Annuler' 473 626 92 32 $form
 $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
 $form.CancelButton = $btnCancel
+
+# Arreter la musique si on ferme la fenetre
+$form.Add_FormClosing({
+    if ($script:currentPlayBtn) {
+        try { $script:wmp.controls.stop() } catch {}
+        $script:currentPlayBtn = $null
+    }
+})
 
 $formResult = $form.ShowDialog()
 if ($formResult -ne [System.Windows.Forms.DialogResult]::OK) {
@@ -699,3 +771,4 @@ Write-Host '  Lance WoW (ou tape /reload si deja en jeu).' -ForegroundColor Cyan
 Write-Host '=============================================' -ForegroundColor Cyan
 Write-Host ''
 pause
+

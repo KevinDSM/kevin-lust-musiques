@@ -11,4 +11,4 @@ set TMP_SCRIPT=%TEMP%\Install-KevinLust.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "try { Invoke-WebRequest -Uri '%SCRIPT_URL%' -OutFile '%TMP_SCRIPT%' -UseBasicParsing -TimeoutSec 15 } catch { Write-Host '[WARN] Impossible de telecharger la mise a jour du script. Utilisation de la version locale.' -ForegroundColor Yellow; Copy-Item '%~dp0Install-KevinLust.ps1' '%TMP_SCRIPT%' -ErrorAction SilentlyContinue }"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%TMP_SCRIPT%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%TMP_SCRIPT%" -BatDir "%~dp0"

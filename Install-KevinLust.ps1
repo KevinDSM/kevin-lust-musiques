@@ -199,18 +199,19 @@ try {
     Write-Host '  -> Le script va continuer et telecharger la derniere version disponible.' -ForegroundColor Yellow
 }
 
-$needsAddonUpdate = $true
+$needsAddonUpdate = $true   # On telecharge toujours pour garantir que les fichiers sont a jour
 
 if ($remoteVersion) {
     if (-not $addonInstalled) {
         Write-Host ("  Premiere installation  (version : {0})" -f $remoteVersion) -ForegroundColor White
-    } elseif ($localVersion -eq $remoteVersion) {
-        Write-Host ("  Addon deja a jour  [v{0}]  - aucun telechargement necessaire." -f $localVersion) -ForegroundColor Green
-        $needsAddonUpdate = $false
+    } elseif ($localVersion -and $localVersion -eq $remoteVersion) {
+        Write-Host ("  Version {0} detectee - verification et mise a jour des fichiers..." -f $remoteVersion) -ForegroundColor Cyan
     } else {
-        $from = if ($localVersion) { "v$localVersion" } else { "version inconnue" }
-        Write-Host ("  Mise a jour disponible : {0}  ->  v{1}" -f $from, $remoteVersion) -ForegroundColor Cyan
+        $from = if ($localVersion) { "v$localVersion" } else { "inconnue" }
+        Write-Host ("  Mise a jour : {0}  ->  v{1}" -f $from, $remoteVersion) -ForegroundColor Cyan
     }
+} else {
+    Write-Host '  Version GitHub non disponible - telechargement de la derniere version...' -ForegroundColor Yellow
 }
 
 # -------- 3. Installer ou mettre a jour l'addon (si besoin) --------

@@ -191,7 +191,7 @@ Write-Host '[3/4] Verification sur GitHub...' -ForegroundColor White
 
 try {
     $mResp = Invoke-RestMethod -Uri "$API/repos/$REPO/contents/manifest.txt" -Headers $hdr -Method GET
-    $mText = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([string]::Join('', $mResp.content) -replace "`n",''))
+    $mText = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(([string]::Join('', $mResp.content) -replace "`n",'')))
     if ($mText -match [regex]::Escape($mp3File)) {
         Write-Host ("  ATTENTION : '{0}' existe deja dans la liste." -f $mp3File) -ForegroundColor Yellow
         Write-Host '  La proposition sera quand meme envoyee pour validation.' -ForegroundColor Yellow
@@ -256,7 +256,7 @@ try {
 Write-Host '  Mise a jour du manifest...' -NoNewline
 try {
     $mBranch  = Invoke-RestMethod -Uri "$API/repos/$REPO/contents/manifest.txt?ref=$branchName" -Headers $hdr -Method GET
-    $mCurrent = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([string]::Join('', $mBranch.content) -replace "`n",''))
+    $mCurrent = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(([string]::Join('', $mBranch.content) -replace "`n",'')))
     $mNew     = $mCurrent.TrimEnd() + "`n$mp3File|$songLabel`n"
     $mNewB64  = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($mNew))
     $mBody    = @{ message = "Manifest: add $songLabel" ; content = $mNewB64 ; sha = $mBranch.sha ; branch = $branchName } | ConvertTo-Json -Depth 5

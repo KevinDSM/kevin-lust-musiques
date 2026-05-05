@@ -303,6 +303,24 @@ if (-not (Test-Path $SongsDir)) {
     New-Item -ItemType Directory -Path $SongsDir | Out-Null
 }
 
+# -------- 3b. Deposer Ajouter-Musique.bat sur le Bureau --------
+# Fait ici (avant la fenetre de selection) pour garantir que ca tourne meme si l'user annule la fenetre.
+$desktop      = [Environment]::GetFolderPath('Desktop')
+$addMusicDest = Join-Path $desktop 'Ajouter-Musique.bat'
+
+Write-Host ''
+Write-Host 'Depot de Ajouter-Musique.bat sur le Bureau...' -NoNewline -ForegroundColor White
+try {
+    Invoke-WebRequest -Uri "$RepoUrl/Ajouter-Musique.bat" -OutFile $addMusicDest -UseBasicParsing -TimeoutSec 30
+    Write-Host '  [OK]' -ForegroundColor Green
+    Write-Host '  -> Ajouter-Musique.bat est sur ton Bureau.' -ForegroundColor Gray
+    Write-Host '  Ce fichier permet de proposer de nouvelles musiques a Kevin !' -ForegroundColor Cyan
+} catch {
+    Write-Host '  [ECHEC - non bloquant]' -ForegroundColor Yellow
+    Write-Host ("  Detail : {0}" -f $_.Exception.Message) -ForegroundColor DarkYellow
+    Write-Host '  (L addon fonctionne quand meme, mais Ajouter-Musique.bat n a pas pu etre telecharge.)' -ForegroundColor DarkYellow
+}
+
 # -------- 4. Telecharger le manifest --------
 Write-Host ''
 Write-Host '[4/4] Telechargement du manifest des musiques...' -ForegroundColor White
@@ -663,24 +681,6 @@ $lines += ''
 Set-Content -Path $SongsLua -Value $lines -Encoding UTF8
 Write-Host '  -> Songs.lua mis a jour.' -ForegroundColor Green
 Write-Host ''
-
-# -------- 8. Telecharger Ajouter-Musique.bat sur le Bureau si absent --------
-$desktop      = [Environment]::GetFolderPath('Desktop')
-$addMusicDest = Join-Path $desktop 'Ajouter-Musique.bat'
-
-if (-not (Test-Path $addMusicDest)) {
-    Write-Host ''
-    Write-Host 'Telechargement de Ajouter-Musique.bat sur le Bureau...' -NoNewline -ForegroundColor White
-    try {
-        Invoke-WebRequest -Uri "$RepoUrl/Ajouter-Musique.bat" -OutFile $addMusicDest -UseBasicParsing -TimeoutSec 30
-        Write-Host '  [OK]' -ForegroundColor Green
-        Write-Host '  -> Ajouter-Musique.bat depose sur ton Bureau.' -ForegroundColor Gray
-        Write-Host '  Ce fichier permet de proposer de nouvelles musiques a Kevin !' -ForegroundColor Cyan
-    } catch {
-        Write-Host '  [ECHEC - non bloquant]' -ForegroundColor Yellow
-    }
-    Write-Host ''
-}
 
 Write-Host '=============================================' -ForegroundColor Cyan
 Write-Host '  Termine !' -ForegroundColor Cyan

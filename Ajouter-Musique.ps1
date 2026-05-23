@@ -184,7 +184,7 @@ $songLabel = $txt.Text.Trim()
 Write-Host ("  -> Nom : {0}" -f $songLabel) -ForegroundColor Gray
 
 # ======================================================================
-#  ETAPE 3 : Verifier les doublons dans le manifest
+#  ETAPE 3 : Verifier les doublons + les PR en attente
 # ======================================================================
 Write-Host ''
 Write-Host '[3/4] Verification sur GitHub...' -ForegroundColor White
@@ -200,6 +200,30 @@ try {
     }
 } catch {
     Write-Host ("  Impossible de verifier les doublons ({0})" -f (Get-DiagError $_.Exception)) -ForegroundColor Yellow
+}
+
+# Verifier qu il n y a pas deja une PR en attente (sinon conflit garanti).
+try {
+    $openPrs     = Invoke-RestMethod -Uri "$API/repos/$REPO/pulls?state=open&per_page=100" -Headers $hdr -Method GET
+    $blockingPrs = @($openPrs | Where-Object { $_.title -like 'Ajout musique*' })
+    if ($blockingPrs.Count -gt 0) {
+        Write-Host ''
+        Write-Host '  ATTENTION : il y a deja des propositions en attente de validation par Kevin :' -ForegroundColor Yellow
+        foreach ($p in $blockingPrs) {
+            Write-Host ("    - PR #{0} : {1}" -f $p.number, $p.title) -ForegroundColor Yellow
+        }
+        Write-Host ''
+        Write-Host '  Si tu envoies maintenant, ta proposition risque d entrer en conflit.' -ForegroundColor Yellow
+        Write-Host '  Le mieux : attendre que Kevin les valide, puis relancer ce script.' -ForegroundColor Yellow
+        Write-Host ''
+        Write-Host '  Veux-tu continuer quand meme ? (o/N) : ' -NoNewline -ForegroundColor White
+        $ans = Read-Host
+        if ($ans -ne 'o' -and $ans -ne 'O') {
+            Write-Host '  Annule.' -ForegroundColor Yellow ; pause ; exit 0
+        }
+    }
+} catch {
+    Write-Host ("  Impossible de verifier les PR en attente ({0})" -f (Get-DiagError $_.Exception)) -ForegroundColor Yellow
 }
 
 # ======================================================================
@@ -253,10 +277,14 @@ try {
 }
 
 # --- Mettre a jour manifest.txt sur la branche ---
+# On lit le manifest depuis main (pas depuis la branche figee) pour s aligner sur
+# l etat le plus recent. Sinon, deux scripts lances en parallele creent deux PR
+# qui ajoutent chacune leur ligne au meme endroit -> conflit garanti.
 Write-Host '  Mise a jour du manifest...' -NoNewline
 try {
     $mBranch  = Invoke-RestMethod -Uri "$API/repos/$REPO/contents/manifest.txt?ref=$branchName" -Headers $hdr -Method GET
-    $mCurrent = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(([string]::Join('', $mBranch.content) -replace "`n",'')))
+    $mMain    = Invoke-RestMethod -Uri "$API/repos/$REPO/contents/manifest.txt?ref=$MAIN"      -Headers $hdr -Method GET
+    $mCurrent = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(([string]::Join('', $mMain.content) -replace "`n",'')))
     $mNew     = $mCurrent.TrimEnd() + "`n$mp3File|$songLabel`n"
     $mNewB64  = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($mNew))
     $mBody    = @{ message = "Manifest: add $songLabel" ; content = $mNewB64 ; sha = $mBranch.sha ; branch = $branchName } | ConvertTo-Json -Depth 5
